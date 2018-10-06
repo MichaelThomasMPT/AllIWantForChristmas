@@ -1,6 +1,7 @@
 package io.github.michaelthomasmpt.alliwantforchristmas;
 
 import android.content.Context;
+import android.icu.text.SimpleDateFormat;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -26,11 +27,11 @@ public class PlayListItemAdapter extends RecyclerView.Adapter<PlayListItemAdapte
   }
 
   public class ViewHolder extends RecyclerView.ViewHolder {
-    public TextView guidTextView;
+    public TextView playDetailsTextView;
 
     public ViewHolder(View itemView) {
       super(itemView);
-      guidTextView = (TextView) itemView.findViewById(R.id.play_guid);
+      playDetailsTextView = (TextView) itemView.findViewById(R.id.play_details);
     }
   }
 
@@ -50,12 +51,16 @@ public class PlayListItemAdapter extends RecyclerView.Adapter<PlayListItemAdapte
 
   @Override
   public void onBindViewHolder(PlayListItemAdapter.ViewHolder viewHolder, int position) {
-    // Get the data model based on position
     PlayListItem playListItem = playListItems.get(position);
+    TextView textView = viewHolder.playDetailsTextView;
 
-    // Set item views based on your views and data model
-    TextView textView = viewHolder.guidTextView;
-    textView.setText(getSuburbFromLocation(textView.getContext(), playListItem.getLocation()));
+    String locationDate = new SimpleDateFormat("EEE d MMM yyyy @ hh:mma").format(playListItem.getTimestamp());
+    String playDetailsText = new StringBuilder()
+        .append(locationDate)
+        .append(" in ")
+        .append(getSuburbFromLocation(textView.getContext(), playListItem.getLocation()))
+        .toString();
+    textView.setText(playDetailsText);
   }
 
   @Override

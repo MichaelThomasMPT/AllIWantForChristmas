@@ -89,11 +89,11 @@ public class PlayListActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Location location) {
               if (location != null) {
-
                 Log.d(MY_APP_TAG, "A location was found: " + location.toString());
-                playListItems.add(new PlayListItem(new Date(), location));
-                adapter.notifyItemInserted(playListItems.size() - 1);
-
+                playListItems.add(0, new PlayListItem(new Date(), location));
+                adapter.notifyItemInserted(0);
+                RecyclerView playListView = (RecyclerView) findViewById(R.id.playListView);
+                playListView.smoothScrollToPosition(0);
               } else {
                 Log.e(MY_APP_TAG, "Retrieved location was null.");
               }
