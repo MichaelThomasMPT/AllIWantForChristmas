@@ -26,13 +26,14 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import static io.github.michaelthomasmpt.alliwantforchristmas.Constants.MY_APP_TAG;
+
 public class PlayListActivity extends AppCompatActivity {
   private final List<String> REQUIRED_PERMISSIONS = Arrays.asList(
       Manifest.permission.ACCESS_COARSE_LOCATION,
       Manifest.permission.ACCESS_FINE_LOCATION
   );
 
-  private final String MY_APP_TAG = "AllIWantForChristmas";
   private final List<PlayListItem> playListItems = loadPlayListItems();
   private final PlayListItemAdapter adapter = new PlayListItemAdapter(playListItems);
   private FusedLocationProviderClient locationProvider;
