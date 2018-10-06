@@ -1,9 +1,11 @@
 package io.github.michaelthomasmpt.alliwantforchristmas;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -21,19 +23,21 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 
 import static io.github.michaelthomasmpt.alliwantforchristmas.Constants.MY_APP_TAG;
 
 public class PlayListActivity extends AppCompatActivity {
+  public static final String SAVED_PLAYS_FILE_NAME = "savedPlays.csv";
   private final List<String> REQUIRED_PERMISSIONS = Arrays.asList(
       Manifest.permission.ACCESS_COARSE_LOCATION,
-      Manifest.permission.ACCESS_FINE_LOCATION
+      Manifest.permission.ACCESS_FINE_LOCATION,
+      Manifest.permission.READ_EXTERNAL_STORAGE,
+      Manifest.permission.WRITE_EXTERNAL_STORAGE
   );
 
+  private File savedPlaysFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), SAVED_PLAYS_FILE_NAME);
   private final List<PlayListItem> playListItems = loadPlayListItems();
   private final PlayListItemAdapter adapter = new PlayListItemAdapter(playListItems);
   private FusedLocationProviderClient locationProvider;
@@ -65,9 +69,6 @@ public class PlayListActivity extends AppCompatActivity {
     });
   }
 
-  /**
-   * request all of the permissions required from the user at app startup
-   */
   private void requestRequiredPermissions() {
     for (String permission : REQUIRED_PERMISSIONS) {
       if (ContextCompat.checkSelfPermission(this, permission)
@@ -90,7 +91,9 @@ public class PlayListActivity extends AppCompatActivity {
             public void onSuccess(Location location) {
               if (location != null) {
                 Log.d(MY_APP_TAG, "A location was found: " + location.toString());
-                playListItems.add(0, new PlayListItem(new Date(), location));
+                PlayListItem newPlay = new PlayListItem(new Date(), location);
+                savePlay(newPlay);
+                playListItems.add(0, newPlay);
                 adapter.notifyItemInserted(0);
                 RecyclerView playListView = (RecyclerView) findViewById(R.id.playListView);
                 playListView.smoothScrollToPosition(0);
@@ -111,10 +114,89 @@ public class PlayListActivity extends AppCompatActivity {
     }
   }
 
+  private void savePlay(PlayListItem play) {
+    try {
+      Log.d(MY_APP_TAG, "Attempting to save play " + play.getId());
+      FileOutputStream outputStream = new FileOutputStream(savedPlaysFile, true);
+      String savedPlayString = new StringBuilder()
+          .append(play.getId())
+          .append(",")
+          .append(play.getTimestamp().getTime())
+          .append(",")
+          .append(play.getLocation().getLongitude())
+          .append(",")
+          .append(play.getLocation().getLatitude())
+          .append("\n")
+          .toString();
+      outputStream.write(savedPlayString.getBytes());
+      outputStream.close();
+      Log.d(MY_APP_TAG, "Play " + play.getId() + " was saved.");
+    } catch (FileNotFoundException e) {
+      Log.e(MY_APP_TAG, "Saved Plays file could not be found when attempting to save a play.", e);
+    } catch (IOException e) {
+      Log.e(MY_APP_TAG, "Error saving play to file.", e);
+    }
+  }
+
   private List<PlayListItem> loadPlayListItems() {
+    Log.d(MY_APP_TAG, "Saved Data file: " + savedPlaysFile.getAbsolutePath());
+    if (savedPlaysFile.exists()) {
+      Log.i(MY_APP_TAG, "Saved Plays file exists. Will load plays from it.");
+      return loadFromExistingFile();
+    } else {
+      Log.i(MY_APP_TAG, "Saved Plays file does not exist. Will attempt to create one.");
+      createNewSavedPlaysFile();
+      return new ArrayList<>();
+    }
+  }
+
+  private List<PlayListItem> loadFromExistingFile() {
     List<PlayListItem> items = new ArrayList<>();
-    //TODO load from disk here
+    BufferedReader br = null;
+    String line = null;
+
+    try {
+      br = new BufferedReader(new FileReader(savedPlaysFile));
+      br.readLine(); //throw away heading row
+
+      //process remaining rows
+      while ((line = br.readLine()) != null) {
+        String[] savedPlay = line.split(",");
+        if (savedPlay.length >= 4) {
+          UUID id = UUID.fromString(savedPlay[0]);
+          Date timestamp = new Date(Long.valueOf(savedPlay[1]));
+          Location location = new Location("");
+          location.setLongitude(Double.valueOf(savedPlay[2]));
+          location.setLatitude(Double.valueOf(savedPlay[3]));
+
+          PlayListItem playListItem = new PlayListItem(id, timestamp, location);
+          items.add(playListItem);
+          Log.d(MY_APP_TAG, "Item " + playListItem.getId() + " was loaded.");
+        }
+      }
+
+    } catch (FileNotFoundException e) {
+      Log.e(MY_APP_TAG, "Could not load playlist items; file not found.", e);
+    } catch (IOException e) {
+      Log.e(MY_APP_TAG, "Could not load playlist items; there was an error reading from file.", e);
+    }
+
+    //order list on timestamp descending
+    Collections.sort(items);
+    Collections.reverse(items);
+
     return items;
+  }
+
+  private void createNewSavedPlaysFile() {
+    try {
+      //write out the headings for the csv file
+      FileOutputStream outputStream = new FileOutputStream(savedPlaysFile);
+      outputStream.write("Play ID,Timestamp,Longitude,Latitude\n".getBytes());
+      outputStream.close();
+    } catch (IOException e) {
+      Log.e(MY_APP_TAG, "Failed to create new savedPlays.csv file", e);
+    }
   }
 
   @Override
