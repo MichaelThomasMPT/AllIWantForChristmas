@@ -174,7 +174,7 @@ public class PlayListActivity extends AppCompatActivity {
           Log.d(MY_APP_TAG, "Item " + playListItem.getId() + " was loaded.");
         }
       }
-
+      br.close();
     } catch (FileNotFoundException e) {
       Log.e(MY_APP_TAG, "Could not load playlist items; file not found.", e);
     } catch (IOException e) {
