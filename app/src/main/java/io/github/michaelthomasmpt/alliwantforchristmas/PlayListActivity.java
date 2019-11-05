@@ -1,11 +1,11 @@
 package io.github.michaelthomasmpt.alliwantforchristmas;
 
 import android.Manifest;
-import android.content.Context;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -18,6 +18,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -28,7 +29,7 @@ import java.util.*;
 
 import static io.github.michaelthomasmpt.alliwantforchristmas.Constants.MY_APP_TAG;
 
-public class PlayListActivity extends AppCompatActivity {
+public class PlayListActivity extends AppCompatActivity implements PlayListItemClickListener {
   public static final String SAVED_PLAYS_FILE_NAME = "savedPlays.csv";
   private final List<String> REQUIRED_PERMISSIONS = Arrays.asList(
       Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -37,7 +38,7 @@ public class PlayListActivity extends AppCompatActivity {
 
   private File savedPlaysFile = new File(MainApp.getAppContext().getFilesDir(), SAVED_PLAYS_FILE_NAME);
   private final List<PlayListItem> playListItems = loadPlayListItems();
-  private final PlayListItemAdapter adapter = new PlayListItemAdapter(playListItems);
+  private final PlayListItemAdapter adapter = new PlayListItemAdapter(this, playListItems);
   private FusedLocationProviderClient locationProvider;
 
   @Override
@@ -65,6 +66,32 @@ public class PlayListActivity extends AppCompatActivity {
         addNewPlay();
       }
     });
+
+  }
+
+  @Override
+  public void playListItemViewListClicked(View v, final int position){
+    // check if item still exists
+    if(position != RecyclerView.NO_POSITION){
+
+      new AlertDialog.Builder(this)
+          .setMessage("Do you want to delete this play?")
+          .setCancelable(true)
+          .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+              //remove from the save file
+              PlayListItem clickedDataItem = playListItems.get(position);
+              deletePlay(clickedDataItem);
+
+              //remove from UI list
+              playListItems.remove(clickedDataItem);
+              adapter.notifyItemRemoved(position);
+            }
+          })
+          .setNegativeButton("No", null)
+          .show();
+    }
+
   }
 
   private void requestRequiredPermissions() {
@@ -133,6 +160,41 @@ public class PlayListActivity extends AppCompatActivity {
       Log.e(MY_APP_TAG, "Saved Plays file could not be found when attempting to save a play.", e);
     } catch (IOException e) {
       Log.e(MY_APP_TAG, "Error saving play to file.", e);
+    }
+  }
+
+  private void deletePlay(PlayListItem play) {
+    try {
+      Log.d(MY_APP_TAG, "Attempting to delete play " + play.getId());
+
+      //create a temp file to write content to
+      File newTempFile = new File(MainApp.getAppContext().getFilesDir(), "newTempFile.csv");
+      FileOutputStream outputStream = new FileOutputStream(newTempFile, true);
+      BufferedReader reader = new BufferedReader(new FileReader(savedPlaysFile));
+      String line;
+
+      while ((line = reader.readLine()) != null) {
+        //if this line isn't the play to be deleted, write it to the temp file
+        Log.d("temp", line);
+        if (!line.contains(play.getId().toString())) {
+          outputStream.write(line.getBytes());
+          outputStream.write("\n".getBytes());
+        } else {
+          Log.d(MY_APP_TAG, "Found selected play, so it will be deleted.");
+        }
+      }
+      outputStream.close();
+      reader.close();
+
+      //delete the saved file, then rename the temp file
+      savedPlaysFile.delete();
+      newTempFile.renameTo(savedPlaysFile);
+
+      Log.d(MY_APP_TAG, "Play " + play.getId() + " was deleted.");
+    } catch (FileNotFoundException e) {
+      Log.e(MY_APP_TAG, "Saved Plays file could not be found when attempting to delete a play.", e);
+    } catch (IOException e) {
+      Log.e(MY_APP_TAG, "Error deleting play from file.", e);
     }
   }
 

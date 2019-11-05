@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,9 +22,11 @@ import static io.github.michaelthomasmpt.alliwantforchristmas.Constants.MY_APP_T
 public class PlayListItemAdapter extends RecyclerView.Adapter<PlayListItemAdapter.ViewHolder> {
 
   private List<PlayListItem> playListItems;
+  private PlayListItemClickListener itemListener;
 
-  public PlayListItemAdapter(List<PlayListItem> playListItems) {
+  public PlayListItemAdapter(PlayListItemClickListener itemListener, List<PlayListItem> playListItems) {
     this.playListItems = playListItems;
+    this.itemListener = itemListener;
   }
 
   public class ViewHolder extends RecyclerView.ViewHolder {
@@ -32,6 +35,15 @@ public class PlayListItemAdapter extends RecyclerView.Adapter<PlayListItemAdapte
     public ViewHolder(View itemView) {
       super(itemView);
       playDetailsTextView = (TextView) itemView.findViewById(R.id.play_details);
+
+      // on item click
+      itemView.setOnLongClickListener(new View.OnLongClickListener(){
+        @Override
+        public boolean onLongClick(View v) {
+          itemListener.playListItemViewListClicked(v, getAdapterPosition());
+          return true;
+        }
+      });
     }
   }
 

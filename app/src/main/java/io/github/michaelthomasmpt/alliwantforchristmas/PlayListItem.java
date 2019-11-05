@@ -18,7 +18,7 @@ public class PlayListItem implements Comparable<PlayListItem> {
     }
 
     public PlayListItem(UUID id, Date timestamp, Location location) {
-        this.id = UUID.randomUUID();
+        this.id = id;
         this.timestamp = timestamp;
         this.location = location;
     }
