@@ -175,7 +175,6 @@ public class PlayListActivity extends AppCompatActivity implements PlayListItemC
 
       while ((line = reader.readLine()) != null) {
         //if this line isn't the play to be deleted, write it to the temp file
-        Log.d("temp", line);
         if (!line.contains(play.getId().toString())) {
           outputStream.write(line.getBytes());
           outputStream.write("\n".getBytes());
