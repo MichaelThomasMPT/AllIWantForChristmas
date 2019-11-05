@@ -32,12 +32,10 @@ public class PlayListActivity extends AppCompatActivity {
   public static final String SAVED_PLAYS_FILE_NAME = "savedPlays.csv";
   private final List<String> REQUIRED_PERMISSIONS = Arrays.asList(
       Manifest.permission.ACCESS_COARSE_LOCATION,
-      Manifest.permission.ACCESS_FINE_LOCATION,
-      Manifest.permission.READ_EXTERNAL_STORAGE,
-      Manifest.permission.WRITE_EXTERNAL_STORAGE
+      Manifest.permission.ACCESS_FINE_LOCATION
   );
 
-  private File savedPlaysFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), SAVED_PLAYS_FILE_NAME);
+  private File savedPlaysFile = new File(MainApp.getAppContext().getFilesDir(), SAVED_PLAYS_FILE_NAME);
   private final List<PlayListItem> playListItems = loadPlayListItems();
   private final PlayListItemAdapter adapter = new PlayListItemAdapter(playListItems);
   private FusedLocationProviderClient locationProvider;
