@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">All I Want For Christmas</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_export">Export</string>
 </resources>

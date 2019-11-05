@@ -3,8 +3,10 @@ package io.github.michaelthomasmpt.alliwantforchristmas;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -31,6 +33,8 @@ import static io.github.michaelthomasmpt.alliwantforchristmas.Constants.MY_APP_T
 
 public class PlayListActivity extends AppCompatActivity implements PlayListItemClickListener {
   public static final String SAVED_PLAYS_FILE_NAME = "savedPlays.csv";
+  private final int EXPORT_REQUEST_CODE = 1;
+
   private final List<String> REQUIRED_PERMISSIONS = Arrays.asList(
       Manifest.permission.ACCESS_COARSE_LOCATION,
       Manifest.permission.ACCESS_FINE_LOCATION
@@ -70,9 +74,9 @@ public class PlayListActivity extends AppCompatActivity implements PlayListItemC
   }
 
   @Override
-  public void playListItemViewListClicked(View v, final int position){
+  public void playListItemViewListClicked(View v, final int position) {
     // check if item still exists
-    if(position != RecyclerView.NO_POSITION){
+    if (position != RecyclerView.NO_POSITION) {
 
       new AlertDialog.Builder(this)
           .setMessage("Do you want to delete this play?")
@@ -273,10 +277,70 @@ public class PlayListActivity extends AppCompatActivity implements PlayListItemC
     int id = item.getItemId();
 
     //noinspection SimplifiableIfStatement
-    if (id == R.id.action_settings) {
-      return true;
+    if (id == R.id.action_export) {
+      Toast.makeText(getApplicationContext(), "Export was clicked.", Toast.LENGTH_SHORT).show();
+      exportSaveFileClickHandler();
     }
 
     return super.onOptionsItemSelected(item);
   }
+
+
+  private void exportSaveFileClickHandler() {
+    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+
+    // Filter to only show results that can be "opened", such as
+    // a file (as opposed to a list of contacts or timezones).
+    intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+    // Create a file with the requested MIME type.
+    intent.setType("text/csv");
+    intent.putExtra(Intent.EXTRA_TITLE, "AllIWantForChristmas.csv");
+    startActivityForResult(intent, EXPORT_REQUEST_CODE);
+  }
+
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (resultCode != RESULT_OK) {
+      Log.e(MY_APP_TAG, "The received Activity Result Code was not okay: " + resultCode, null);
+      return;
+    }
+
+    if (requestCode == EXPORT_REQUEST_CODE) {
+      if (data != null) {
+        Uri uri = data.getData();
+        if (uri != null) {
+          exportCsv(uri);
+        }
+      }
+    } else {
+      Log.e(MY_APP_TAG, "The received Activity Request Code was not expected!", null);
+      return;
+    }
+  }
+
+  private void exportCsv(Uri uri) {
+    try {
+      Log.d(MY_APP_TAG, "Attempting to export csv...");
+      OutputStream outputStream = getContentResolver().openOutputStream(uri);
+      BufferedReader reader = new BufferedReader(new FileReader(savedPlaysFile));
+
+      String line;
+      while ((line = reader.readLine()) != null) {
+        outputStream.write(line.getBytes());
+        outputStream.write("\n".getBytes());
+      }
+
+      outputStream.close();
+      reader.close();
+      Log.d(MY_APP_TAG, "Successfully exported csv.");
+    } catch (FileNotFoundException e) {
+      Log.e(MY_APP_TAG, "Saved Plays file could not be found when attempting to save a play.", e);
+    } catch (IOException e) {
+      Log.e(MY_APP_TAG, "Error saving play to file.", e);
+    }
+  }
+
+
 }
